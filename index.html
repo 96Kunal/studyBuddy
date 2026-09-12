@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyBuddy | Your day, in focus</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="StudyBuddy home">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span>Study<span>Buddy</span></span>
+      </a>
+      <div class="topbar-actions">
+        <div class="date-pill"><span class="date-dot"></span><span id="today-label">Today</span></div>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="welcome-section">
+        <div>
+          <p class="eyebrow">PERSONAL STUDY PLANNER</p>
+          <h1>Make today<br><em>count.</em></h1>
+          <p class="intro">Small steps, steady rhythm, meaningful progress.</p>
+        </div>
+        <div class="quote-card">
+          <span class="quote-mark">“</span>
+          <p id="quote-text">Success is the sum of small efforts, repeated day in and day out.</p>
+          <span class="quote-author" id="quote-author">— Robert Collier</span>
+        </div>
+      </section>
+
+      <section class="dashboard-grid" aria-label="Today's progress">
+        <div class="progress-card panel">
+          <div class="panel-heading compact-heading">
+            <div><p class="eyebrow">TODAY'S PROGRESS</p><h2>Keep the momentum</h2></div>
+            <span class="sparkle" aria-hidden="true">✧</span>
+          </div>
+          <div class="progress-content">
+            <div class="progress-ring" id="progress-ring" aria-label="0 percent of tasks complete">
+              <div class="ring-inner"><strong id="progress-percent">0%</strong><span>complete</span></div>
+            </div>
+            <div class="progress-copy">
+              <strong id="task-summary">0 of 0 tasks completed today</strong>
+              <div class="progress-bar"><span id="progress-bar-fill"></span></div>
+              <p id="progress-message">A clear plan is a kind of self-care.</p>
+            </div>
+          </div>
+        </div>
+        <div class="streak-card panel">
+          <div class="streak-icon">♨</div>
+          <div><p class="eyebrow">CURRENT STREAK</p><strong class="streak-number" id="streak-count">0</strong><span class="streak-label">days in a row</span></div>
+          <span class="streak-tail">Keep it going!</span>
+        </div>
+      </section>
+
+      <section class="ai-coach panel" aria-labelledby="coach-title">
+        <div class="ai-coach-heading">
+          <div class="ai-badge">✦ AI</div>
+          <div><p class="eyebrow">PERSONAL STUDY COACH</p><h2 id="coach-title">A smarter next step</h2></div>
+          <button class="coach-refresh" id="coach-refresh" type="button" aria-label="Refresh AI study advice" title="Refresh advice">↻</button>
+        </div>
+        <div class="coach-body"><p id="coach-message">Your private study coach uses the plan stored on this device.</p><div class="coach-actions"><button class="coach-action" id="coach-plan" type="button">✦ Plan my day</button><button class="coach-action secondary" id="coach-focus" type="button">Start a focus block</button></div></div>
+        <div class="voice-planner">
+          <div class="voice-row"><button class="mic-button" id="voice-button" type="button" aria-label="Start voice recognition"><span>●</span> Speak your plan</button><span class="voice-status" id="voice-status">Say what you need to study, and when.</span></div>
+          <textarea id="voice-transcript" rows="2" placeholder="Example: Plan chemistry revision at 4 PM, read history for 30 minutes, and exercise at 7."></textarea>
+          <div class="gemini-row"><span class="backend-status"><span class="status-dot"></span> Private local mode</span><button class="coach-action" id="gemini-generate" type="button">Add voice plan</button></div>
+          <p class="privacy-note">Tasks, habits, and voice transcripts stay on this device.</p>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <section class="planner-section">
+          <div class="section-heading">
+            <div><p class="eyebrow">YOUR SCHEDULE</p><h2>Today's tasks</h2></div>
+            <span class="task-count" id="task-count">0 tasks</span>
+          </div>
+          <form class="task-form panel" id="task-form">
+            <div class="input-wrap subject-input"><label for="subject">What are you studying?</label><input id="subject" name="subject" type="text" placeholder="e.g. Biology — Cell Structure" required maxlength="80"></div>
+            <div class="input-wrap time-input"><label for="time">Time</label><input id="time" name="time" type="time" required></div>
+            <div class="input-wrap priority-input"><label for="priority">Priority</label><select id="priority" name="priority"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select></div>
+            <button class="primary-button" type="submit"><span>+</span> Add task</button>
+          </form>
+          <div class="task-list" id="task-list"></div>
+          <div class="empty-state panel" id="empty-state"><span class="empty-icon">✎</span><strong>Your plan is a blank page.</strong><p>Add your first task above and give your day some shape.</p></div>
+        </section>
+
+        <aside class="side-column">
+          <section class="habits-section panel">
+            <div class="section-heading"><div><p class="eyebrow">DAILY RITUAL</p><h2>Good habits</h2></div><span class="habit-check" id="habit-summary">0/4</span></div>
+            <p class="section-note">The small things add up.</p>
+            <div class="habit-list" id="habit-list"></div>
+          </section>
+
+          <section class="pomodoro-section panel">
+            <div class="section-heading"><div><p class="eyebrow">FOCUS TIMER</p><h2>Pomodoro</h2></div><span class="timer-mode" id="timer-mode">Focus</span></div>
+            <div class="timer-display" id="timer-display">25:00</div>
+            <div class="timer-controls"><button class="timer-button primary-button" id="timer-start" type="button">Start focus</button><button class="reset-button" id="timer-reset" type="button" aria-label="Reset timer" title="Reset timer">↺</button></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer><span>StudyBuddy</span><span>Made for focused days · <span id="footer-year"></span></span></footer>
+  </div>
+  <script src="app.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

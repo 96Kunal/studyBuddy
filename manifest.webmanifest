@@ -1,0 +1,10 @@
+{
+  "name": "StudyBuddy",
+  "short_name": "StudyBuddy",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f5",
+  "theme_color": "#e66f4f",
+  "description": "A private offline study planner and habit tracker",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
