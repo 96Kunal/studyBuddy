@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Dynamic 60 FPS Ambient Focus Particle Canvas -->
+  <canvas id="ambient-particle-canvas" class="particle-canvas" aria-hidden="true"></canvas>
+
   <div class="app-container">
     <!-- TOP NAVIGATION BAR (Next.js / Nuxt client routing) -->
     <header class="navbar" id="topbar">
@@ -20,7 +23,7 @@
         <a href="#planner" class="brand-link" aria-label="StudyBuddy Nexus Home">
           <div class="brand-icon">✦</div>
           <div class="brand-text">
-            <span class="brand-title">StudyBuddy <span class="brand-badge">NEXUS</span></span>
+            <span class="brand-title">StudyBuddy <span class="brand-badge">NEXUS PRO</span></span>
             <span class="brand-subtitle">Architectural Study OS</span>
           </div>
         </a>
@@ -46,10 +49,17 @@
       </nav>
 
       <div class="nav-right">
+        <!-- Command Palette Shortcut Pill -->
+        <button id="btn-open-palette" class="palette-trigger-btn" type="button" title="Open Command Palette (Ctrl+K)">
+          <span class="palette-icon">⌘</span>
+          <span class="palette-label">Quick Command</span>
+          <kbd class="kbd-shortcut">Ctrl+K</kbd>
+        </button>
+
         <!-- Web Audio Ambient Sound Toggle -->
         <button id="btn-ambient-sound" class="chip-btn sound-btn" type="button" title="Toggle procedural ambient focus noise (Web Audio API)">
           <span class="sound-wave-icon">〰</span>
-          <span id="ambient-status-text">Ambient: Off</span>
+          <span id="ambient-status-text">Audio: Off</span>
         </button>
 
         <!-- Judges Architecture Inspector Button -->
@@ -186,6 +196,10 @@
                 <option value="medium">Medium Priority</option>
                 <option value="low">Low Priority</option>
               </select>
+              <!-- 1-Click .ics iCalendar Export -->
+              <button id="btn-export-ics" type="button" class="btn-secondary-action small-btn" title="Export schedule as RFC 5545 .ics iCalendar file for Google/Apple Calendar">
+                📅 Export .ics
+              </button>
               <button id="btn-open-task-modal" type="button" class="btn-primary-action small-btn">
                 <span>+</span> Add Task
               </button>
@@ -354,15 +368,43 @@
               </button>
             </div>
 
-            <!-- Web Audio Ambient Noise Switch -->
-            <div class="timer-sound-switch">
-              <div class="sound-control-group">
-                <span class="sound-title">🎧 Procedural Alpha Wave Generator</span>
-                <p class="sound-desc">Synthesized directly via Web Audio API oscillators. No streaming latency or bandwidth use.</p>
+            <!-- Multi-Track Soundscape Mixer Studio -->
+            <div class="soundscape-mixer-panel">
+              <div class="mixer-header">
+                <h4>🎧 Multi-Track Procedural Soundscape Studio</h4>
+                <span class="mixer-badge">Web Audio DSP</span>
               </div>
-              <button id="btn-ambient-focus-toggle" type="button" class="btn-secondary-action">
-                Play Ambient Tone
-              </button>
+              <p class="mixer-desc">Real-time mathematical waveform synthesis with zero audio downloads.</p>
+              <div class="mixer-tracks-grid">
+                <div class="mixer-track">
+                  <div class="track-info">
+                    <span class="track-title">Alpha Waves (10 Hz)</span>
+                    <span class="track-sub">Binaural Calm Focus</span>
+                  </div>
+                  <button type="button" id="btn-track-alpha" class="track-btn">Play</button>
+                </div>
+                <div class="mixer-track">
+                  <div class="track-info">
+                    <span class="track-title">Gamma Waves (40 Hz)</span>
+                    <span class="track-sub">High Problem Solving</span>
+                  </div>
+                  <button type="button" id="btn-track-gamma" class="track-btn">Play</button>
+                </div>
+                <div class="mixer-track">
+                  <div class="track-info">
+                    <span class="track-title">Rainfall Noise</span>
+                    <span class="track-sub">Stochastic Lowpass</span>
+                  </div>
+                  <button type="button" id="btn-track-rain" class="track-btn">Play</button>
+                </div>
+                <div class="mixer-track">
+                  <div class="track-info">
+                    <span class="track-title">Tibetan Singing Bowl</span>
+                    <span class="track-sub">Dual-Harmonic Chime</span>
+                  </div>
+                  <button type="button" id="btn-play-chime" class="track-btn chime-btn">Chime</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -518,6 +560,8 @@
       <!-- DevTools Navigation Tabs -->
       <div class="devtools-tabs">
         <button type="button" class="dtab active" data-dtab="network">🌐 Express/Fastify REST</button>
+        <button type="button" class="dtab" data-dtab="sandbox">🧪 REST Sandbox</button>
+        <button type="button" class="dtab" data-dtab="benchmarks">⚡ Benchmarks</button>
         <button type="button" class="dtab" data-dtab="nest">🏗️ NestJS DI Graph</button>
         <button type="button" class="dtab" data-dtab="reactivity">⚡ Solid & Vue Signals</button>
         <button type="button" class="dtab" data-dtab="remix">🔄 Remix Pipeline</button>
@@ -540,7 +584,73 @@
           </div>
         </div>
 
-        <!-- TAB 2: NEST.JS DI GRAPH -->
+        <!-- TAB 2: INTERACTIVE REST API SANDBOX & SWAGGER STUDIO -->
+        <div class="dpanel" id="dpanel-sandbox">
+          <div class="dpanel-desc">
+            <strong>Interactive REST API Sandbox:</strong> Test live endpoints against the Fastify schema validator. Try sending missing or invalid fields to watch strict validation catch errors in real time.
+          </div>
+          <div class="sandbox-form">
+            <div class="sandbox-row">
+              <select id="sb-method" class="sandbox-select">
+                <option value="POST">POST</option>
+                <option value="GET">GET</option>
+                <option value="PATCH">PATCH</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+              <select id="sb-endpoint" class="sandbox-select flex-1">
+                <option value="/api/v1/tasks">/api/v1/tasks (Create Study Task)</option>
+                <option value="/api/v1/flashcards">/api/v1/flashcards (Create Flashcard)</option>
+                <option value="/api/v1/analytics">/api/v1/analytics (Fetch Telemetry)</option>
+                <option value="/api/v1/notes">/api/v1/notes (Save Note)</option>
+              </select>
+              <button id="sb-send-btn" type="button" class="btn-primary-action small-btn">Send</button>
+            </div>
+            <div class="sandbox-body-group">
+              <label for="sb-payload">Request JSON Body (Fastify Schema Target):</label>
+              <textarea id="sb-payload" class="code-editor-area" rows="4">{
+  "subject": "Deep Learning Architectures",
+  "priority": "high",
+  "time": "14:00"
+}</textarea>
+            </div>
+            <div class="sandbox-response-box">
+              <div class="sb-resp-header">
+                <span>Response Output:</span>
+                <span id="sb-resp-status" class="badge-status online">Status: Ready</span>
+              </div>
+              <pre id="sb-resp-code" class="code-log-box">// Response payload will appear here...</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: FRAMEWORK PERFORMANCE PROFILER & BENCHMARK -->
+        <div class="dpanel" id="dpanel-benchmarks">
+          <div class="dpanel-desc">
+            <strong>Framework Performance Profiler:</strong> Measures 1,000 fine-grained reactive signal updates (Solid.js) vs Virtual DOM reconciliation passes in microseconds (&mu;s).
+          </div>
+          <div class="bench-card">
+            <button id="btn-run-benchmark" type="button" class="btn-primary-action">
+              ⚡ Run 1,000 Reactive Operations
+            </button>
+            <div class="bench-results-grid" id="bench-results" style="display: none;">
+              <div class="bench-metric">
+                <span class="bm-label">Solid Signals Latency</span>
+                <strong class="bm-val" id="bm-signal-val">0.02 &mu;s / op</strong>
+                <div class="bm-bar-track"><div class="bm-bar-fill fast" id="bm-signal-bar"></div></div>
+              </div>
+              <div class="bench-metric">
+                <span class="bm-label">Virtual DOM Reconciliation</span>
+                <strong class="bm-val" id="bm-tree-val">0.38 &mu;s / op</strong>
+                <div class="bm-bar-track"><div class="bm-bar-fill slow" id="bm-tree-bar"></div></div>
+              </div>
+              <div class="bench-summary" id="bm-summary">
+                Solid Signals completed <strong>19.2x faster</strong> with zero reconciliation overhead!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: NEST.JS DI GRAPH -->
         <div class="dpanel" id="dpanel-nest">
           <div class="dpanel-desc">
             <strong>Nest.js Inversion of Control & DI Container:</strong> Modular dependency graph with resolved `@Injectable` singletons, providers, and controller mappings.
@@ -554,7 +664,7 @@
           </div>
         </div>
 
-        <!-- TAB 3: SOLID.JS & VUE REACTIVITY -->
+        <!-- TAB 5: SOLID.JS & VUE REACTIVITY -->
         <div class="dpanel" id="dpanel-reactivity">
           <div class="dpanel-desc">
             <strong>Solid.js Fine-Grained Signals & Vue Proxy Watchers:</strong> Zero Virtual DOM overhead reactive graph. Perform any action on the page and observe reactive variables mutate instantaneously.
@@ -579,7 +689,7 @@
           </div>
         </div>
 
-        <!-- TAB 4: REMIX OPTIMISTIC PIPELINE -->
+        <!-- TAB 6: REMIX OPTIMISTIC PIPELINE -->
         <div class="dpanel" id="dpanel-remix">
           <div class="dpanel-desc">
             <strong>Remix Action / Loader & Optimistic UI:</strong> Mutations immediately reflect on screen with rollback safeguards and automated revalidation.
@@ -610,7 +720,7 @@
           </div>
         </div>
 
-        <!-- TAB 5: NODE.JS TELEMETRY -->
+        <!-- TAB 7: NODE.JS TELEMETRY -->
         <div class="dpanel" id="dpanel-node">
           <div class="dpanel-desc">
             <strong>Node.js Event Loop & Telemetry:</strong> Simulated async task queue, event loop tick latency, event emitter bus activity, and process memory status.
@@ -640,6 +750,27 @@
         </div>
       </div>
     </aside>
+
+    <!-- ======================================================== -->
+    <!-- SUPERHUMAN COMMAND PALETTE MODAL (Ctrl+K / Cmd+K)        -->
+    <!-- ======================================================== -->
+    <div id="command-palette-modal" class="palette-backdrop" style="display: none;">
+      <div class="palette-box panel" role="dialog" aria-modal="true" aria-label="Command Palette">
+        <div class="palette-input-wrap">
+          <span class="palette-search-icon">🔍</span>
+          <input type="text" id="palette-search-field" placeholder="Type a command or jump to page..." autocomplete="off">
+          <kbd class="kbd-badge">Esc</kbd>
+        </div>
+        <div class="palette-results-list" id="palette-results-container">
+          <!-- Command Items -->
+        </div>
+        <div class="palette-footer">
+          <span><kbd>↑</kbd> <kbd>↓</kbd> to navigate</span>
+          <span><kbd>↵</kbd> to select</span>
+          <span><kbd>Esc</kbd> to dismiss</span>
+        </div>
+      </div>
+    </div>
 
     <!-- MODAL: ADD / EDIT TASK DIALOG -->
     <div id="task-modal" class="modal-backdrop" style="display: none;">

@@ -837,6 +837,74 @@ export class WebAudioSynthesizer {
     } catch {}
   }
 
+  // Multi-Track Audio Nodes
+  toggleBinauralWaves(type = 'alpha') {
+    this._initCtx();
+    if (!this.ctx) return false;
+
+    if (this._binauralActive) {
+      this._stopBinaural();
+      return false;
+    }
+
+    const baseFreq = 200;
+    const beatFreq = type === 'gamma' ? 40 : 10; // 10Hz Alpha, 40Hz Gamma
+
+    // Left Channel Oscillator
+    const oscL = this.ctx.createOscillator();
+    oscL.type = 'sine';
+    oscL.frequency.setValueAtTime(baseFreq + beatFreq, this.ctx.currentTime);
+
+    // Right Channel Oscillator
+    const oscR = this.ctx.createOscillator();
+    oscR.type = 'sine';
+    oscR.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+
+    // Stereo Panning
+    const panL = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+    const panR = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+    if (panL && panR) {
+      panL.pan.setValueAtTime(-1, this.ctx.currentTime);
+      panR.pan.setValueAtTime(1, this.ctx.currentTime);
+    }
+
+    this._binauralGain = this.ctx.createGain();
+    this._binauralGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+    this._binauralGain.gain.exponentialRampToValueAtTime(0.12, this.ctx.currentTime + 1.2);
+
+    if (panL && panR) {
+      oscL.connect(panL);
+      panL.connect(this._binauralGain);
+      oscR.connect(panR);
+      panR.connect(this._binauralGain);
+    } else {
+      oscL.connect(this._binauralGain);
+      oscR.connect(this._binauralGain);
+    }
+
+    this._binauralGain.connect(this.ctx.destination);
+    oscL.start();
+    oscR.start();
+
+    this._binauralOscs = [oscL, oscR];
+    this._binauralActive = true;
+    this._binauralType = type;
+    return true;
+  }
+
+  _stopBinaural() {
+    if (this._binauralGain) {
+      this._binauralGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.4);
+      setTimeout(() => {
+        if (this._binauralOscs) {
+          this._binauralOscs.forEach(o => { try { o.stop(); o.disconnect(); } catch {} });
+          this._binauralOscs = null;
+        }
+      }, 400);
+    }
+    this._binauralActive = false;
+  }
+
   // Procedural Pink Noise / Alpha Wave Generator for Deep Focus
   toggleAmbientSound() {
     this._initCtx();
@@ -847,15 +915,13 @@ export class WebAudioSynthesizer {
         this.ambientGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.5);
         setTimeout(() => {
           if (this.ambientNode) {
-            this.ambientNode.stop();
-            this.ambientNode.disconnect();
+            try { this.ambientNode.stop(); this.ambientNode.disconnect(); } catch {}
           }
         }, 500);
       }
       this.isPlayingAmbient = false;
       return false;
     } else {
-      // Generate Pink Noise buffer
       const bufferSize = this.ctx.sampleRate * 2;
       const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -877,7 +943,6 @@ export class WebAudioSynthesizer {
       this.ambientNode.buffer = buffer;
       this.ambientNode.loop = true;
 
-      // Filter to create warm soothing brown/pink frequency
       const filter = this.ctx.createBiquadFilter();
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(450, this.ctx.currentTime);
@@ -898,3 +963,98 @@ export class WebAudioSynthesizer {
 }
 
 export const audioSynth = new WebAudioSynthesizer();
+
+// ===============================================================
+// 12. RFC 5545 .ICS ICALENDAR EXPORTER
+// ===============================================================
+export class CalendarExporter {
+  static generateICS(tasks, date = new Date()) {
+    const pad = n => String(n).padStart(2, '0');
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const dtStamp = `${y}${m}${d}T000000Z`;
+
+    const events = (tasks || []).map((t, idx) => {
+      const [h = '09', min = '00'] = (t.time || '09:00').split(':');
+      const startHour = parseInt(h, 10);
+      const startMin = parseInt(min, 10);
+      const endHour = (startHour + 1) % 24;
+
+      const dtStart = `${y}${m}${d}T${pad(startHour)}${pad(startMin)}00`;
+      const dtEnd = `${y}${m}${d}T${pad(endHour)}${pad(startMin)}00`;
+
+      return [
+        'BEGIN:VEVENT',
+        `UID:studybuddy-nexus-${Date.now()}-${idx}@local`,
+        `DTSTAMP:${dtStamp}`,
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:StudyBuddy: ${t.subject.replace(/[,;]/g, ' ')}`,
+        `DESCRIPTION:Priority: ${t.priority.toUpperCase()} | Tags: ${(t.tags || []).join(', ')}`,
+        `PRIORITY:${t.priority === 'high' ? '1' : t.priority === 'medium' ? '5' : '9'}`,
+        'STATUS:CONFIRMED',
+        'END:VEVENT'
+      ].join('\r\n');
+    }).join('\r\n');
+
+    return [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//StudyBuddy Nexus//Academic Productivity Engine//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:StudyBuddy Daily Schedule',
+      events,
+      'END:VCALENDAR'
+    ].join('\r\n');
+  }
+
+  static downloadICS(tasks, filename = 'studybuddy-schedule.ics') {
+    const icsContent = CalendarExporter.generateICS(tasks);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+}
+
+// ===============================================================
+// 13. FRAMEWORK PERFORMANCE PROFILER (SOLID SIGNALS VS VDOM)
+// ===============================================================
+export class PerformanceProfiler {
+  static benchmarkSignalsVsTree(iterations = 1000) {
+    // 1. Solid.js Fine-Grained Signals
+    const [signal, setSignal] = createSignal(0);
+    let subscriberRuns = 0;
+    createEffect(() => {
+      subscriberRuns += signal();
+    });
+
+    const t0 = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      setSignal(i);
+    }
+    const signalDurationMs = performance.now() - t0;
+
+    // 2. Simulated Virtual DOM Object Tree Diffing
+    const t1 = performance.now();
+    let oldTree = { type: 'div', props: { count: 0 }, children: Array.from({ length: 50 }, (_, k) => ({ type: 'span', text: `item-${k}` })) };
+    for (let i = 0; i < iterations; i++) {
+      const newTree = { type: 'div', props: { count: i }, children: Array.from({ length: 50 }, (_, k) => ({ type: 'span', text: `item-${k + (i % 2)}` })) };
+      // Shallow Diff simulation
+      const changed = oldTree.props.count !== newTree.props.count || oldTree.children.length !== newTree.children.length;
+      if (changed) oldTree = newTree;
+    }
+    const treeDurationMs = performance.now() - t1;
+
+    return {
+      iterations,
+      signalDurationUs: Math.round((signalDurationMs / iterations) * 100000) / 100, // microsec per op
+      treeDurationUs: Math.round((treeDurationMs / iterations) * 100000) / 100,
+      speedupFactor: Math.round((treeDurationMs / Math.max(signalDurationMs, 0.001)) * 10) / 10
+    };
+  }
+}

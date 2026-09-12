@@ -2277,6 +2277,430 @@ body {
 .footer-copy {
   font-size: 0.8rem;
   color: var(--text-muted);
+/* ========================================================
+   PARTICLE CANVAS & COMMAND PALETTE
+   ======================================================== */
+.particle-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  transition: opacity var(--transition-normal);
+}
+
+.palette-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.palette-trigger-btn:hover {
+  border-color: var(--border-prominent);
+  color: var(--text-primary);
+}
+
+.palette-icon {
+  font-size: 0.85rem;
+  color: var(--accent-cyan);
+}
+
+.palette-label {
+  font-weight: 500;
+}
+
+.kbd-shortcut {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+/* Command Palette Modal */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 14vh;
+  z-index: 400;
+}
+
+.palette-box {
+  width: 100%;
+  max-width: 580px;
+  background-color: var(--bg-surface);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), var(--shadow-glow);
+  overflow: hidden;
+  animation: paletteDrop 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes paletteDrop {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.palette-input-wrap {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 0.75rem;
+}
+
+.palette-search-icon {
+  font-size: 1.1rem;
+  opacity: 0.6;
+}
+
+.palette-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.kbd-badge {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.palette-results-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-primary);
+}
+
+.palette-item:hover, .palette-item.active {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.15));
+  color: #ffffff;
+}
+
+.palette-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.palette-item-icon {
+  font-size: 1.1rem;
+}
+
+.palette-item-action {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.65rem 1.25rem;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.palette-footer kbd {
+  font-family: var(--font-mono);
+  padding: 0.1rem 0.35rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* ========================================================
+   MULTI-TRACK SOUNDSCAPE MIXER (Pomodoro Studio)
+   ======================================================== */
+.soundscape-mixer-panel {
+  width: 100%;
+  padding: 1.25rem;
+  background-color: var(--bg-surface-elevated);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.mixer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.mixer-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.mixer-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.mixer-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.mixer-tracks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.mixer-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.85rem;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.mixer-track:hover {
+  border-color: var(--border-prominent);
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.track-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.track-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.track-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.track-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-prominent);
+}
+
+.track-btn.active {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-primary));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.chime-btn:hover {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--accent-amber);
+}
+
+/* ========================================================
+   REST API SANDBOX (DevTools Drawer)
+   ======================================================== */
+.sandbox-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sandbox-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sandbox-select {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  background-color: #141a29;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: #e2e8f0;
+  outline: none;
+}
+
+.sandbox-select.flex-1 {
+  flex: 1;
+}
+
+.sandbox-body-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sandbox-body-group label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+}
+
+.code-editor-area {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #080b12;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: #38bdf8;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.code-editor-area:focus {
+  border-color: var(--accent-primary);
+}
+
+.sandbox-response-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sb-resp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: var(--font-mono);
+}
+
+/* ========================================================
+   FRAMEWORK BENCHMARK PROFILER
+   ======================================================== */
+.bench-card {
+  padding: 1.25rem;
+  background-color: #141a29;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.bench-results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  text-align: left;
+}
+
+.bench-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bm-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.bm-val {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: #ffffff;
+}
+
+.bm-bar-track {
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.bm-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bm-bar-fill.fast {
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  width: 15%;
+}
+
+.bm-bar-fill.slow {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  width: 85%;
+}
+
+.bench-summary {
+  padding: 0.75rem;
+  background-color: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: #34d399;
+  text-align: center;
 }
 
 /* ==========================================

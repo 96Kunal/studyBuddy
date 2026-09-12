@@ -18,7 +18,9 @@ import {
   UniversalRouter,
   SpacedRepetitionEngine,
   NaturalLanguageTaskParser,
-  audioSynth
+  audioSynth,
+  CalendarExporter,
+  PerformanceProfiler
 } from './core/engine.js';
 
 import { bootstrapServices } from './core/services.js';
@@ -972,7 +974,369 @@ document.querySelector('#fc-modal-form').addEventListener('submit', e => {
 });
 
 // ==========================================
-// 11. THEME & INITIALIZATION
+// 11. 60 FPS DYNAMIC AMBIENT PARTICLE CANVAS
+// ==========================================
+function initParticleCanvas() {
+  const canvas = document.querySelector('#ambient-particle-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = window.innerHeight);
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+
+  const particles = [];
+  const particleCount = Math.min(width < 768 ? 25 : 55, 60);
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      radius: Math.random() * 2 + 1,
+      color: i % 2 === 0 ? 'rgba(99, 102, 241, ' : 'rgba(6, 182, 212, '
+    });
+  }
+
+  const bursts = [];
+  window.triggerParticleBurst = function(x = width / 2, y = height / 2) {
+    for (let i = 0; i < 24; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 4 + 1.5;
+      bursts.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: Math.random() * 2.5 + 1.5,
+        alpha: 1,
+        color: ['#10b981', '#38bdf8', '#fbbf24', '#f43f5e'][Math.floor(Math.random() * 4)]
+      });
+    }
+  };
+
+  function animate() {
+    ctx.clearRect(0, 0, width, height);
+
+    // Render connecting lines
+    for (let i = 0; i < particles.length; i++) {
+      const p1 = particles[i];
+      p1.x += p1.vx;
+      p1.y += p1.vy;
+
+      if (p1.x < 0) p1.x = width;
+      if (p1.x > width) p1.x = 0;
+      if (p1.y < 0) p1.y = height;
+      if (p1.y > height) p1.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, p1.radius, 0, Math.PI * 2);
+      ctx.fillStyle = p1.color + '0.6)';
+      ctx.fill();
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const p2 = particles[j];
+        const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(99, 102, 241, ${0.15 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Render burst particles
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      const b = bursts[i];
+      b.x += b.vx;
+      b.y += b.vy;
+      b.alpha -= 0.02;
+      if (b.alpha <= 0) {
+        bursts.splice(i, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+      ctx.fillStyle = b.color;
+      ctx.globalAlpha = b.alpha;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+}
+
+// ========================================================
+// 12. SUPERHUMAN COMMAND PALETTE (Ctrl+K / Cmd+K)
+// ========================================================
+function setupCommandPalette() {
+  const modal = document.querySelector('#command-palette-modal');
+  const input = document.querySelector('#palette-search-field');
+  const resultsList = document.querySelector('#palette-results-container');
+  const triggerBtn = document.querySelector('#btn-open-palette');
+
+  const commands = [
+    { id: 'nav-planner', title: 'Go to Planner & Kanban', icon: '📋', group: 'Navigation', action: () => router.navigate('planner') },
+    { id: 'nav-flashcards', title: 'Go to Spaced Recall (SM-2)', icon: '🃏', group: 'Navigation', action: () => router.navigate('flashcards') },
+    { id: 'nav-pomodoro', title: 'Go to Focus Studio', icon: '⏱️', group: 'Navigation', action: () => router.navigate('pomodoro') },
+    { id: 'nav-notes', title: 'Go to Markdown Notes', icon: '📝', group: 'Navigation', action: () => router.navigate('notes') },
+    { id: 'nav-analytics', title: 'Go to Productivity Heatmap', icon: '📊', group: 'Navigation', action: () => router.navigate('analytics') },
+    { id: 'act-devtools', title: 'Open Judges Architecture DevTools', icon: '⚡', group: 'Architecture', action: () => document.querySelector('#btn-toggle-devtools').click() },
+    { id: 'act-task', title: 'Create New Study Task', icon: '＋', group: 'Actions', action: () => document.querySelector('#btn-open-task-modal').click() },
+    { id: 'act-card', title: 'Create Spaced Retrieval Card', icon: '🃏', group: 'Actions', action: () => document.querySelector('#btn-new-card').click() },
+    { id: 'act-note', title: 'Create New Study Note', icon: '📝', group: 'Actions', action: () => document.querySelector('#btn-create-note').click() },
+    { id: 'act-ics', title: 'Export Schedule to .ics iCalendar', icon: '📅', group: 'Export', action: () => document.querySelector('#btn-export-ics').click() },
+    { id: 'act-theme', title: 'Toggle Theme (Dark / Light)', icon: '◐', group: 'Settings', action: () => document.querySelector('#btn-theme-toggle').click() },
+    { id: 'act-audio', title: 'Toggle Procedural Ambient Tone', icon: '🎧', group: 'Audio', action: () => document.querySelector('#btn-ambient-sound').click() }
+  ];
+
+  let activeIndex = 0;
+  let filteredCommands = [...commands];
+
+  function openPalette() {
+    modal.style.display = 'flex';
+    input.value = '';
+    filteredCommands = [...commands];
+    activeIndex = 0;
+    renderPaletteResults();
+    setTimeout(() => input.focus(), 50);
+  }
+
+  function closePalette() {
+    modal.style.display = 'none';
+  }
+
+  function renderPaletteResults() {
+    if (!filteredCommands.length) {
+      resultsList.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">No commands matching search query.</div>';
+      return;
+    }
+
+    resultsList.innerHTML = filteredCommands.map((cmd, i) => `
+      <div class="palette-item ${i === activeIndex ? 'active' : ''}" data-idx="${i}">
+        <div class="palette-item-left">
+          <span class="palette-item-icon">${cmd.icon}</span>
+          <span>${escapeHtml(cmd.title)}</span>
+        </div>
+        <span class="palette-item-action">${cmd.group}</span>
+      </div>
+    `).join('');
+
+    resultsList.querySelectorAll('.palette-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const idx = parseInt(item.dataset.idx, 10);
+        executeCommand(filteredCommands[idx]);
+      });
+    });
+  }
+
+  function executeCommand(cmd) {
+    if (!cmd) return;
+    closePalette();
+    audioSynth.playTick();
+    cmd.action();
+  }
+
+  input.addEventListener('input', e => {
+    const q = e.target.value.toLowerCase().trim();
+    filteredCommands = commands.filter(c => c.title.toLowerCase().includes(q) || c.group.toLowerCase().includes(q));
+    activeIndex = 0;
+    renderPaletteResults();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = (activeIndex + 1) % filteredCommands.length;
+      renderPaletteResults();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = (activeIndex - 1 + filteredCommands.length) % filteredCommands.length;
+      renderPaletteResults();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (filteredCommands[activeIndex]) {
+        executeCommand(filteredCommands[activeIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      closePalette();
+    }
+  });
+
+  triggerBtn.addEventListener('click', openPalette);
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closePalette();
+  });
+
+  // Global Ctrl+K / Cmd+K listener
+  window.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (modal.style.display === 'flex') closePalette();
+      else openPalette();
+    }
+  });
+}
+
+// ========================================================
+// 13. MULTI-TRACK AUDIO MIXER & SOUNDBOARD
+// ========================================================
+function setupAudioMixer() {
+  const btnAlpha = document.querySelector('#btn-track-alpha');
+  const btnGamma = document.querySelector('#btn-track-gamma');
+  const btnRain = document.querySelector('#btn-track-rain');
+  const btnChime = document.querySelector('#btn-play-chime');
+
+  let alphaOn = false;
+  let gammaOn = false;
+
+  btnAlpha.addEventListener('click', () => {
+    alphaOn = audioSynth.toggleBinauralWaves('alpha');
+    btnAlpha.classList.toggle('active', alphaOn);
+    btnAlpha.textContent = alphaOn ? 'Active' : 'Play';
+    if (alphaOn && gammaOn) {
+      gammaOn = false;
+      btnGamma.classList.remove('active');
+      btnGamma.textContent = 'Play';
+    }
+  });
+
+  btnGamma.addEventListener('click', () => {
+    gammaOn = audioSynth.toggleBinauralWaves('gamma');
+    btnGamma.classList.toggle('active', gammaOn);
+    btnGamma.textContent = gammaOn ? 'Active' : 'Play';
+    if (gammaOn && alphaOn) {
+      alphaOn = false;
+      btnAlpha.classList.remove('active');
+      btnAlpha.textContent = 'Play';
+    }
+  });
+
+  btnRain.addEventListener('click', () => {
+    const rainOn = audioSynth.toggleAmbientSound();
+    btnRain.classList.toggle('active', rainOn);
+    btnRain.textContent = rainOn ? 'Active' : 'Play';
+  });
+
+  btnChime.addEventListener('click', () => {
+    audioSynth.playChime();
+    if (window.triggerParticleBurst) window.triggerParticleBurst();
+  });
+}
+
+// ========================================================
+// 14. REST API SANDBOX & FRAMEWORK BENCHMARK PROFILER
+// ========================================================
+function setupApiSandbox() {
+  const methodSelect = document.querySelector('#sb-method');
+  const endpointSelect = document.querySelector('#sb-endpoint');
+  const payloadEditor = document.querySelector('#sb-payload');
+  const sendBtn = document.querySelector('#sb-send-btn');
+  const statusBadge = document.querySelector('#sb-resp-status');
+  const respCode = document.querySelector('#sb-resp-code');
+
+  endpointSelect.addEventListener('change', () => {
+    const ep = endpointSelect.value;
+    if (ep.includes('tasks')) {
+      methodSelect.value = 'POST';
+      payloadEditor.value = JSON.stringify({ subject: 'Distributed Systems Synthesis', priority: 'high', time: '15:30' }, null, 2);
+    } else if (ep.includes('flashcards')) {
+      methodSelect.value = 'POST';
+      payloadEditor.value = JSON.stringify({ front: 'What is CAP theorem?', back: 'Consistency, Availability, Partition Tolerance trade-offs.', deck: 'CS' }, null, 2);
+    } else if (ep.includes('analytics')) {
+      methodSelect.value = 'GET';
+      payloadEditor.value = '{}';
+    } else if (ep.includes('notes')) {
+      methodSelect.value = 'POST';
+      payloadEditor.value = JSON.stringify({ title: 'New Note', content: 'Notes body' }, null, 2);
+    }
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+    statusBadge.textContent = 'Sending...';
+
+    const method = methodSelect.value;
+    const endpoint = endpointSelect.value;
+    let body = {};
+    try {
+      body = JSON.parse(payloadEditor.value || '{}');
+    } catch {
+      statusBadge.textContent = 'JSON Syntax Error';
+      respCode.textContent = 'Error: Invalid JSON payload in request editor.';
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+      return;
+    }
+
+    const res = await mockServer.handleRequest(method, endpoint, body);
+    statusBadge.textContent = `Status: ${res.status} OK (${res.duration}ms)`;
+    statusBadge.className = res.status < 400 ? 'badge-status online' : 'badge-status';
+    respCode.textContent = JSON.stringify(res.data, null, 2);
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send';
+    audioSynth.playTick();
+  });
+}
+
+function setupBenchmarks() {
+  const runBtn = document.querySelector('#btn-run-benchmark');
+  const resultsBox = document.querySelector('#bench-results');
+  const sigVal = document.querySelector('#bm-signal-val');
+  const treeVal = document.querySelector('#bm-tree-val');
+  const sigBar = document.querySelector('#bm-signal-bar');
+  const treeBar = document.querySelector('#bm-tree-bar');
+  const summary = document.querySelector('#bm-summary');
+
+  runBtn.addEventListener('click', () => {
+    runBtn.disabled = true;
+    runBtn.textContent = 'Benchmarking 1,000 Ops...';
+
+    setTimeout(() => {
+      const bench = PerformanceProfiler.benchmarkSignalsVsTree(1000);
+      resultsBox.style.display = 'flex';
+      sigVal.textContent = `${bench.signalDurationUs} \u03BCs / op`;
+      treeVal.textContent = `${bench.treeDurationUs} \u03BCs / op`;
+
+      const max = Math.max(bench.treeDurationUs, bench.signalDurationUs, 0.01);
+      sigBar.style.width = `${Math.max(8, (bench.signalDurationUs / max) * 100)}%`;
+      treeBar.style.width = `${Math.max(8, (bench.treeDurationUs / max) * 100)}%`;
+
+      summary.innerHTML = `Solid Signals executed <strong>${bench.speedupFactor}x faster</strong> with zero virtual DOM overhead!`;
+      runBtn.disabled = false;
+      runBtn.textContent = '⚡ Re-run Benchmark';
+      audioSynth.playTick();
+    }, 80);
+  });
+}
+
+// 1-Click .ics iCalendar Export
+document.querySelector('#btn-export-ics').addEventListener('click', () => {
+  CalendarExporter.downloadICS(reactiveState.tasks);
+  audioSynth.playTick();
+});
+
+// Trigger particle burst on task completion
+globalEventBus.on('tasks:updated', task => {
+  if (task.completed && window.triggerParticleBurst) {
+    window.triggerParticleBurst(window.innerWidth / 2, window.innerHeight / 3);
+  }
+});
+
+// ==========================================
+// 15. THEME & INITIALIZATION
 // ==========================================
 const themeToggleBtn = document.querySelector('#btn-theme-toggle');
 const themeIcon = document.querySelector('#theme-icon');
@@ -1005,3 +1369,9 @@ renderTasksView();
 updateTimerUi();
 renderActiveFlashcard();
 renderAnalyticsHeatmap();
+initParticleCanvas();
+setupCommandPalette();
+setupAudioMixer();
+setupApiSandbox();
+setupBenchmarks();
+
